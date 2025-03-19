@@ -27,3 +27,5 @@ extension Device: @unchecked Sendable {
         color = getColor(state: state)
     }
 }
+
+extension Device: Observable { }

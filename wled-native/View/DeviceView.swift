@@ -8,6 +8,8 @@ struct DeviceView: View {
     @State var showDownloadFinished = false
     @State var shouldWebViewRefresh = false
     
+    @State var showEditDeviceView = false
+    
     var body: some View {
         ZStack {
             #if os(iOS)
@@ -40,21 +42,21 @@ struct DeviceView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
-        .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                Button {
-                    shouldWebViewRefresh = true
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                }
-                
-                NavigationLink {
-                    DeviceEditView()
-                        .environmentObject(device)
-                } label: {
-                    Image(systemName: "gear")
-                }
-                .overlay(ToolbarBadge(value: .constant(getToolbarBadgeCount())))
+        .toolbar { toolbar }
+    }
+    
+    
+    @ToolbarContentBuilder
+    var toolbar: some ToolbarContent {
+        ToolbarItem(placement: .navigation) {
+            NavigationLink {
+                DeviceEditView()
+                    .environmentObject(device)
+            } label: {
+                Image(systemName: "gear")
+            }
+            .overlay(alignment: .bottomTrailing) {
+                ToolbarBadge(value: .constant(getToolbarBadgeCount()))
             }
         }
     }
