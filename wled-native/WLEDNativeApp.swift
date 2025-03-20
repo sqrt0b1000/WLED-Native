@@ -1,8 +1,13 @@
 
 import SwiftUI
 
-enum WindowGroupIds: String {
+enum WindowIds: String {
     case main = "WLEDNativeApp-main"
+}
+
+enum WLED:String {
+    case showHiddenDevices = "WLED.showHiddenDevices"
+    case showOfflineDevices = "WLED.showOfflineDevices"
 }
 
 @main
@@ -30,8 +35,8 @@ struct WLEDNativeApp: App {
                 .frame(height: 300)
         }
             .menuBarExtraStyle(.window)
-        #endif
-        Window("WLED", id: WindowGroupIds.main.rawValue) {
+        
+        Window("WLED", id: WindowIds.main.rawValue) {
             DeviceListViewFabric.makeWindow()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .onAppear() {
@@ -44,6 +49,20 @@ struct WLEDNativeApp: App {
                 ) }
         }
         WindowGroup {}
+        #elseif os(iOS)
+        WindowGroup {
+            DeviceListViewFabric.makeWindow()
+                .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                .onAppear() {
+                    refreshVersionsSync()
+                }
+                .sheet(isPresented: $addDeviceButtonActive, content: DeviceAddView.init)
+                .toolbar{ Toolbar(
+                    showMenuBarExtra: $showMenuBarExtra,
+                    addDeviceButtonActive: $addDeviceButtonActive
+                ) }
+        }
+        #endif
     }
     
     

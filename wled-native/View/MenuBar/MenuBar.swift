@@ -46,7 +46,7 @@ struct MenuBar: View {
             //  Dismisses the menu bar window
             dismiss()
             //  Opens a new main window
-            openWindow(id: WindowGroupIds.main.rawValue)
+            openWindow(id: WindowIds.main.rawValue)
             //  Brings the window to the foreground
             NSApplication.shared.activate()
         } label: {
@@ -54,4 +54,3 @@ struct MenuBar: View {
         }
     }
 }
-

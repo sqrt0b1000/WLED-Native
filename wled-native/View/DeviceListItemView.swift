@@ -3,7 +3,7 @@ import SwiftUI
 
 struct DeviceListItemView: View {
     @Environment(\.managedObjectContext) private var viewContext
-    @Environment(\.colorScheme) var colorScheme
+    
     @EnvironmentObject var device: Device
     
     @State private var isUserInput = true

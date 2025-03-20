@@ -18,8 +18,8 @@ struct DeviceListViewFabric {
 @available(macOS 15.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
 struct DeviceListView: View {
     
-    @SceneStorage("DeviceListView.showHiddenDevices") private var showHiddenDevices: Bool = false
-    @SceneStorage("DeviceListView.showOfflineDevices") private var showOfflineDevices: Bool = true
+    @SceneStorage(WLED.showHiddenDevices.rawValue) private var showHiddenDevices: Bool = false
+    @SceneStorage(WLED.showOfflineDevices.rawValue) private var showOfflineDevices: Bool = true
     
     private static let sort = [
         SortDescriptor(\Device.name, comparator: .localized, order: .forward)
@@ -53,8 +53,7 @@ struct DeviceListView: View {
         #elseif os(iOS)
         NavigationSplitView {
             list
-                .toolbarTitleDisplayMode(.inlineLarge)
-                .navigationBarTitleDisplayMode(.inline)
+                .navigationBarTitleDisplayMode(.large)
         } detail: {
             detailView
         }

@@ -10,6 +10,7 @@ import SwiftUI
 
 extension Device {
     
+    
     var displayName: String {
         let emptyName = String(localized: "(New Device)")
         guard let name = self.name else {
@@ -27,11 +28,11 @@ extension Device {
         */
     }
     
-    var displayColor: Color {
-        colorFromHex()
+    func displayColor(colorScheme: ColorScheme) -> Color {
+        colorFromHex(colorScheme: colorScheme)
     }
     
-    func colorFromHex() -> Color {
+    func colorFromHex(colorScheme: ColorScheme) -> Color {
         // &  binary AND operator to zero out other color values
         // >>  bitwise right shift operator
         // Divide by 0xFF because UIColor takes CGFloats between 0.0 and 1.0
@@ -44,14 +45,14 @@ extension Device {
         let alpha = CGFloat(1.0)
         // TODO: Fix Colors also for XOS
         #if os(iOS)
-        return fixColor(color: UIColor(red: red, green: green, blue: blue, alpha: alpha))
+        return fixColor(colorScheme: colorScheme, color: UIColor(red: red, green: green, blue: blue, alpha: alpha))
         #else
         return Color(red: red, green: green, blue: blue, opacity: alpha)
         #endif
     }
     #if os(iOS)
     // Fixes the color if it is too dark or too bright depending of the dark/light theme
-    func fixColor(color: UIColor) -> Color {
+    func fixColor(colorScheme: ColorScheme, color: UIColor) -> Color {
         var h = CGFloat(0), s = CGFloat(0), b = CGFloat(0), a = CGFloat(0)
         color.getHue(&h, saturation: &s, brightness: &b, alpha: &a)
         b = colorScheme == .dark ? fmax(b, 0.2) : fmin(b, 0.75)

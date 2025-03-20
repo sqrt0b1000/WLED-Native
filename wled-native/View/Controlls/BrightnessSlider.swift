@@ -12,6 +12,7 @@ struct BrightnesSlider: View {
     
     @State private var brightness: Double = 0.0
     @ObservedObject var device: Device
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         Slider(
@@ -27,7 +28,7 @@ struct BrightnesSlider: View {
                 }
             }
         )
-            .tint(device.displayColor)
+            .tint(device.displayColor(colorScheme: colorScheme))
             .onAppear() {
                 brightness = Double(device.brightness)
             }

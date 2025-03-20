@@ -11,6 +11,7 @@ import SwiftUI
 struct ActiveToogle: View {
     
     @ObservedObject var device: Device
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         Toggle("Turn On/Off", isOn: Binding(get: {device.isPoweredOn}, set: {
@@ -21,7 +22,7 @@ struct ActiveToogle: View {
                 await device.getRequestManager().addRequest(WLEDChangeStateRequest(state: postParam))
             }
         }))
-            .tint(device.displayColor)
+            .tint(device.displayColor(colorScheme: colorScheme))
             .labelsHidden()
     }
 }

@@ -10,8 +10,8 @@ import SwiftUI
 
 struct Toolbar: ToolbarContent {
     
-    @SceneStorage("DeviceListView.showHiddenDevices") private var showHiddenDevices: Bool = false
-    @SceneStorage("DeviceListView.showOfflineDevices") private var showOfflineDevices: Bool = true
+    @SceneStorage(WLED.showHiddenDevices.rawValue) private var showHiddenDevices: Bool = false
+    @SceneStorage(WLED.showOfflineDevices.rawValue) private var showOfflineDevices: Bool = true
     
     @Binding var showMenuBarExtra: Bool
     @Binding var addDeviceButtonActive:Bool
