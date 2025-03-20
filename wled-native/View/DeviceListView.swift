@@ -13,78 +13,13 @@ struct DeviceListViewFabric {
             OldDeviceListView()
         }
     }
-    
-    @available(iOS 16.0, macOS 15, *)
-    @MainActor @ViewBuilder
-    static func makeMenueBar() -> some View {
-        OSXDeviceListView()
-    }
-}
-
-@available(iOS 16.0, macOS 15.0, *)
-struct OSXDeviceListView: View {
-    
-    private static let sort = [
-        SortDescriptor(\Device.name, comparator: .localized, order: .forward)
-    ]
-    
-    @FetchRequest(sortDescriptors: sort, animation: .default)
-    private var devices: FetchedResults<Device>
-    
-    @Environment(\.managedObjectContext) private var viewContext
-    
-    
-    @State private var selection: Device? = nil
-    
-    var body: some View {
-        List(selection: $selection) {
-            DeviceList(devices: devices)
-        }
-    }
-}
-
-@available(iOS 16.0, macOS 15.0, *)
-struct DeviceList: View {
-    
-    let devices:FetchedResults<Device>
-    
-    var body: some View {
-        ForEach(devices) { device in
-            NavigationLink(value: device) {
-                DeviceListItemView()
-            }
-                .environmentObject(device)
-                .swipeActions(allowsFullSwipe: true) {
-                    Button(role: .destructive) {
-                        deleteItems(device: device)
-                    } label: {
-                        Label("Delete", systemImage: "trash.fill")
-                    }
-                }
-        }
-    }
-    
-    private func deleteItems(device: Device) {
-        withAnimation {
-            if let context = device.managedObjectContext {
-                context.delete(device)
-                do {
-                    if context.hasChanges {
-                        try context.save()
-                    }
-                } catch {
-                    // Replace this implementation with code to handle the error appropriately.
-                    // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                    let nsError = error as NSError
-                    fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-                }
-            }
-        }
-    }
 }
 
 @available(macOS 15.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
 struct DeviceListView: View {
+    
+    @SceneStorage("DeviceListView.showHiddenDevices") private var showHiddenDevices: Bool = false
+    @SceneStorage("DeviceListView.showOfflineDevices") private var showOfflineDevices: Bool = true
     
     private static let sort = [
         SortDescriptor(\Device.name, comparator: .localized, order: .forward)
@@ -102,31 +37,29 @@ struct DeviceListView: View {
     
     @State private var selection: Device? = nil
     
-    @State private var addDeviceButtonActive: Bool = false
-    
-    @SceneStorage("DeviceListView.showHiddenDevices") private var showHiddenDevices: Bool = false
-    @SceneStorage("DeviceListView.showOfflineDevices") private var showOfflineDevices: Bool = true
-    
     private let discoveryService = DiscoveryService()
     
     //MARK: - UI
     
     var body: some View {
+        #if os(macOS)
+        NavigationStack {
+            list
+                .toolbarTitleDisplayMode(.inlineLarge)
+        }
+            .onAppear(perform: appearAction)
+            .onDisappear(perform: disappearAction)
+            .onChange(of: showHiddenDevices, initial: false) { _,_ in updateFilter() }
+        #elseif os(iOS)
         NavigationSplitView {
             list
-                .toolbar{ toolbar }
-                .sheet(isPresented: $addDeviceButtonActive, content: DeviceAddView.init)
-                #if os(iOS)
+                .toolbarTitleDisplayMode(.inlineLarge)
                 .navigationBarTitleDisplayMode(.inline)
-                #endif
         } detail: {
             detailView
         }
             .onAppear(perform: appearAction)
             .onDisappear(perform: disappearAction)
-        #if os(macOS)
-            .onChange(of: showHiddenDevices, initial: false) { _,_ in updateFilter() }
-        #else
             .onChange(of: showHiddenDevices) { _ in updateFilter() }
         #endif
     }
@@ -156,73 +89,6 @@ struct DeviceListView: View {
         } else {
             Text("Select A Device")
                 .font(.title2)
-        }
-    }
-    
-    @ToolbarContentBuilder
-    private var toolbar: some ToolbarContent {
-        ToolbarItem(placement: .principal) {
-            VStack {
-                Image(.wledLogoAkemi)
-                    .resizable()
-                    .scaledToFit()
-                    .padding(2)
-            }
-            .frame(maxWidth: 200)
-        }
-        ToolbarItem {
-            Menu {
-                Section {
-                    addButton
-                }
-                Section {
-                    visibilityButton
-                    hideOfflineButton
-                }
-                Section {
-                    Link(destination: URL(string: "https://kno.wled.ge/")!) {
-                        Label("WLED Documentation", systemImage: "questionmark.circle")
-                    }
-                }
-            } label: {
-                Label("Menu", systemImage: "ellipsis.circle")
-            }
-        }
-    }
-    
-    var addButton: some View {
-        Button {
-            addDeviceButtonActive.toggle()
-        } label: {
-            Label("Add New Device", systemImage: "plus")
-        }
-    }
-    
-    var visibilityButton: some View {
-        Button {
-            withAnimation {
-                showHiddenDevices.toggle()
-            }
-        } label: {
-            if (showHiddenDevices) {
-                Label("Hide Hidden Devices", systemImage: "eye.slash")
-            } else {
-                Label("Show Hidden Devices", systemImage: "eye")
-            }
-        }
-    }
-    
-    var hideOfflineButton: some View {
-        Button {
-            withAnimation {
-                showOfflineDevices.toggle()
-            }
-        } label: {
-            if (showOfflineDevices) {
-                Label("Hide Offline Devices", systemImage: "wifi")
-            } else {
-                Label("Show Offline Devices", systemImage: "wifi.slash")
-            }
         }
     }
     
@@ -285,22 +151,6 @@ struct DeviceListView: View {
             }
         }
         
-    }
-    
-    private func deleteItems(device: Device) {
-        withAnimation {
-            viewContext.delete(device)
-            do {
-                if viewContext.hasChanges {
-                    try viewContext.save()
-                }
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
-        }
     }
 }
 

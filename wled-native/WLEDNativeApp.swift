@@ -1,32 +1,49 @@
 
 import SwiftUI
 
+enum WindowGroupIds: String {
+    case main = "WLEDNativeApp-main"
+}
+
 @main
 struct WLEDNativeApp: App {
+    
+    
+    @State private var showMenuBarExtra:Bool = true
+    @State private var addDeviceButtonActive: Bool = false
+    
+    
     static let dateLastUpdateKey = "lastUpdateReleasesDate"
     
     let persistenceController = PersistenceController.shared
     
     var body: some Scene {
-        #if os(iOS)
-        WindowGroup {
+        #if os(macOS)
+        //  The Menu Bar for macOS
+        MenuBarExtra(
+            "WLED",
+            systemImage: "lamp.table.fill",
+            isInserted: $showMenuBarExtra
+        ) {
+            MenuBar()
+                .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                .frame(height: 300)
+        }
+            .menuBarExtraStyle(.window)
+        #endif
+        Window("WLED", id: WindowGroupIds.main.rawValue) {
             DeviceListViewFabric.makeWindow()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .onAppear() {
                     refreshVersionsSync()
                 }
+                .sheet(isPresented: $addDeviceButtonActive, content: DeviceAddView.init)
+                .toolbar{ Toolbar(
+                    showMenuBarExtra: $showMenuBarExtra,
+                    addDeviceButtonActive: $addDeviceButtonActive
+                ) }
         }
-        #elseif os(macOS)
-        //  The Menu Bar for macOS
-        MenuBarExtra("WLED", systemImage: "lamp.table.fill") {
-            DeviceListViewFabric.makeMenueBar()
-                .environment(\.managedObjectContext, persistenceController.container.viewContext)
-                .onAppear() {
-                    refreshVersionsSync()
-                }
-        }
-            .menuBarExtraStyle(.window)
-        #endif
+        WindowGroup {}
     }
     
     
