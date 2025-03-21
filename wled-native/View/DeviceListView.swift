@@ -75,7 +75,11 @@ struct DeviceListView: View {
             }
         }
             .listStyle(PlainListStyle())
-            .refreshable(action: refreshList)
+            .refreshable {
+                await withTaskGroup(of: Void.self) { group in
+                    refreshList(group: &group)
+                }
+            }
     }
     
     @ViewBuilder
@@ -93,14 +97,6 @@ struct DeviceListView: View {
     
     //MARK: - Actions
     
-    @Sendable
-    private func refreshList() async {
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask { discoveryService.scan() }
-            group.addTask { await refreshDevices() }
-        }
-    }
-    
     private func updateFilter() {
         print("Update Filter")
         if showHiddenDevices {
@@ -116,40 +112,29 @@ struct DeviceListView: View {
     //  Cancel the connection if the view disappears and reconnect as soon it apears again
     private func appearAction() {
         updateFilter()
+        //TODO: Add Web socket observer
         timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in
-            Task {
-                print("auto-refreshing")
-                await refreshList()
-                await refreshDevices()
+            Task { @MainActor in
+                await withTaskGroup(of: Void.self) {
+                    refreshList(group: &$0)
+                }
             }
         }
-        discoveryService.scan()
+        timer?.fire()
     }
     
     private func disappearAction() {
         timer?.invalidate()
     }
     
-    @Sendable
-    private func refreshDevices() async {
-        await withTaskGroup(of: Void.self) { group in
-            devices.forEach { refreshDevice(device: $0, group: &group) }
-            devicesOffline.forEach { refreshDevice(device: $0, group: &group) }
-        }
+    private func refreshList(group: inout TaskGroup<Void>) {
+        group.addTask { discoveryService.scan() }
+        refreshDevices(group: &group)
     }
     
-    private func refreshDevice(device: Device, group: inout TaskGroup<Void>) {
-        // Don't start a refresh request when the device is not done refreshing.
-        if (!device.isRefreshing) {
-            return
-        }
-        self.viewContext.performAndWait {
-            device.isRefreshing = true
-            group.addTask {
-                await device.getRequestManager().addRequest(WLEDRefreshRequest())
-            }
-        }
-        
+    private func refreshDevices(group: inout TaskGroup<Void>)  {
+        devices.forEach { $0.refreshDevice(group: &group) }
+        devicesOffline.forEach { $0.refreshDevice(group: &group) }
     }
 }
 

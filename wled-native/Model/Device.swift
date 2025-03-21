@@ -66,4 +66,38 @@ extension Device {
             self.branch = String(newValue.rawValue)
         }
     }
+    
+    func refreshDevice(group: inout TaskGroup<Void>) {
+        // Don't start a refresh request when the device is not done refreshing.
+        if (self.isRefreshing) {
+            return
+        }
+        self.isRefreshing = true
+        group.addTask {
+            await self.getRequestManager().addRequest(WLEDRefreshRequest())
+        }
+        group.addTask {
+            await self.getRequestManager().addRequest(WLEDRequestPresets(device: self))
+        }
+    }
+}
+
+class DevicePresets: ObservableObject {
+    var presets: [Device: Presets] = [:]
+    private var selectedPreset: [Device: Int] = [:]
+    
+    func getPreset(for device: Device) -> Int {
+        selectedPreset[device] ?? 0
+    }
+    func setPreset(for device: Device, newPreset: Int) {
+        self.objectWillChange.send()
+        selectedPreset[device] = newPreset
+        Task {
+            await device.getRequestManager()
+                .addRequest(WLEDChangeStateRequest(state: WLEDStateChange(selectedPresetId: Int64(newPreset))))
+            }
+        }
+    
+    @MainActor
+    static let shared: DevicePresets = DevicePresets()
 }

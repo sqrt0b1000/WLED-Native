@@ -34,6 +34,10 @@ struct MenuBar: View {
                 if (device.updateAvailable) {
                     Icons.update
                 }
+                Spacer()
+                PresetSelector(device: device)
+                    .labelsHidden()
+                    .frame(alignment: .trailing)
             }
         }
         openWindowButton

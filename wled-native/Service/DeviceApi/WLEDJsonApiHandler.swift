@@ -26,8 +26,44 @@ final class WLEDJsonApiHandler: WLEDRequestHandler {
             await processChangeStateRequest(changeStateRequest)
         case let softwareUpdateRequest as WLEDSoftwareUpdateRequest:
             await processSoftwareUpdateRequest(softwareUpdateRequest)
+        case let presetRequest as WLEDRequestPresets:
+            await processPresetsRequest(presetRequest)
         default:
             fatalError("Not Implemented")
+        }
+    }
+    
+    func processPresetsRequest(_ request: WLEDRequestPresets) async {
+        let url = getJsonApiUrl(path: "presets.json")
+        guard let url else {
+            print("Can't update device, url nil")
+            return
+        }
+        print("Reading api at: \(url)")
+        
+        do {
+            let (data, response) = try await urlSession.data(from: url)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                print("Invalid httpResponse in update")
+                self.updateDeviceOnError()
+                return
+            }
+            guard (200...299).contains(httpResponse.statusCode) else {
+                print("Error with the response in update, unexpected status code: \(httpResponse)")
+                self.updateDeviceOnError()
+                return
+            }
+            
+            let presets = try JSONDecoder().decode(Presets.self, from: data)
+            
+            await MainActor.run {
+                DevicePresets.shared.presets[device] = presets
+            }
+        } catch {
+            print("Error with fetching device: \(error)")
+            self.updateDeviceOnError()
+            return
         }
     }
     
@@ -198,49 +234,54 @@ final class WLEDJsonApiHandler: WLEDRequestHandler {
             return
         }
         
-        context.performAndWait {
-            do {
-                let deviceStateInfo = try JSONDecoder().decode(DeviceStateInfo.self, from: data)
-                print("Updating \(deviceStateInfo.info.name)")
-                
-                if (device.branchValue == Branch.unknown) {
-                    device.branchValue = (deviceStateInfo.info.version ?? "").contains("-b") ? Branch.beta : Branch.stable
-                }
-                
-                let deviceVersion = deviceStateInfo.info.version ?? ""
-                let releaseService = ReleaseService(context: context)
-                let latestUpdateVersionTagAvailable = releaseService.getNewerReleaseTag(
-                    versionName: deviceVersion,
-                    branch: device.branchValue,
-                    ignoreVersion: device.skipUpdateTag ?? ""
-                )
-
-                device.setStateValues(state: deviceStateInfo.state)
-                device.macAddress = deviceStateInfo.info.mac
-                device.name = device.isCustomName ? device.name : deviceStateInfo.info.name
-                device.isPoweredOn = deviceStateInfo.state.isOn
-                device.networkRssi = deviceStateInfo.info.wifi.rssi ?? 0
-                // TODO: Check for isEthernet
-                device.isEthernet = false
-                device.platformName = deviceStateInfo.info.platformName ?? ""
-                device.version = deviceStateInfo.info.version ?? ""
-                device.latestUpdateVersionTagAvailable = latestUpdateVersionTagAvailable
-                device.brand = deviceStateInfo.info.brand ?? ""
-                device.productName = deviceStateInfo.info.product ?? ""
-                
-                do {
-                    try context.save()
-                } catch {
-                    // Replace this implementation with code to handle the error appropriately.
-                    // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                    let nsError = error as NSError
-                    fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-                }
-            } catch {
-                print(error)
-                updateDeviceOnError()
-            }
+        guard let deviceStateInfo = try? JSONDecoder().decode(DeviceStateInfo.self, from: data) else {
+            print("Failed to decode JSON")
+            updateDeviceOnError()
+            return
         }
+        print("Updating \(deviceStateInfo.info.name)")
+        
+        DevicePresets.shared.setPreset(for: device, newPreset: Int(deviceStateInfo.state.selectedPresetId ?? -1))
+        
+        context.performAndWait {
+            if (device.branchValue == Branch.unknown) {
+                device.branchValue = (deviceStateInfo.info.version ?? "").contains("-b") ? Branch.beta : Branch.stable
+            }
+            
+            let deviceVersion = deviceStateInfo.info.version ?? ""
+            let releaseService = ReleaseService(context: context)
+            let latestUpdateVersionTagAvailable = releaseService.getNewerReleaseTag(
+                versionName: deviceVersion,
+                branch: device.branchValue,
+                ignoreVersion: device.skipUpdateTag ?? ""
+            )
+
+            device.setStateValues(state: deviceStateInfo.state)
+            device.macAddress = deviceStateInfo.info.mac
+            device.name = device.isCustomName ? device.name : deviceStateInfo.info.name
+            device.isPoweredOn = deviceStateInfo.state.isOn
+            device.networkRssi = deviceStateInfo.info.wifi.rssi ?? 0
+            // TODO: Check for isEthernet
+            device.isEthernet = false
+            device.platformName = deviceStateInfo.info.platformName ?? ""
+            device.version = deviceStateInfo.info.version ?? ""
+            device.latestUpdateVersionTagAvailable = latestUpdateVersionTagAvailable
+            device.brand = deviceStateInfo.info.brand ?? ""
+            device.productName = deviceStateInfo.info.product ?? ""
+            
+            
+            
+            do {
+                try context.save()
+            } catch {
+                // Replace this implementation with code to handle the error appropriately.
+                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
+                let nsError = error as NSError
+                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+            }
+        
+        }
+        
     }
     
     private func onSuccessPostJson(data: Data?) {

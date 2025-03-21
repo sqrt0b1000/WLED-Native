@@ -28,7 +28,6 @@ struct DeviceList: View {
         }
     }
     
-    
     private func deleteItems(device: Device) {
         withAnimation {
             if let context = device.managedObjectContext {

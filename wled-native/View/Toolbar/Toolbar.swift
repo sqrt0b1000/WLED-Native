@@ -37,7 +37,9 @@ struct Toolbar: ToolbarContent {
                 Section {
                     visibilityButton
                     hideOfflineButton
+                    #if os(macOS)
                     showMenuBarButton
+                    #endif
                 }
                 Section {
                     Link(destination: URL(string: "https://kno.wled.ge/")!) {

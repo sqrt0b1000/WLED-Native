@@ -105,12 +105,15 @@ class DeviceUpdateService: @unchecked Sendable {
             // TODO: Handle errors
             return
         }
-        await device.getRequestManager().addRequest(WLEDSoftwareUpdateRequest(
-            binaryFile: binaryPath,
-            onCompletion: onCompletion,
-            onFailure: onFailure
-        ))
-        
+        await device
+            .getRequestManager()
+            .addRequest(
+                WLEDSoftwareUpdateRequest(
+                    binaryFile: binaryPath,
+                    onCompletion: onCompletion,
+                    onFailure: onFailure
+                )
+            )
     }
     
     func getPathForAsset() -> URL? {

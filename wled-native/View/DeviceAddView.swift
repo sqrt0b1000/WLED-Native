@@ -16,7 +16,7 @@ struct DeviceAddView: View {
     @FocusState var focusedField: Field?
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack {
                 VStack(alignment: .leading) {
                     Text("IP Address or URL")

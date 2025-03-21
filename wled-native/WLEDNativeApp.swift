@@ -42,7 +42,10 @@ struct WLEDNativeApp: App {
                 .onAppear() {
                     refreshVersionsSync()
                 }
-                .sheet(isPresented: $addDeviceButtonActive, content: DeviceAddView.init)
+                .sheet(isPresented: $addDeviceButtonActive) {
+                    DeviceAddView()
+                        .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                }
                 .toolbar{ Toolbar(
                     showMenuBarExtra: $showMenuBarExtra,
                     addDeviceButtonActive: $addDeviceButtonActive
@@ -56,7 +59,10 @@ struct WLEDNativeApp: App {
                 .onAppear() {
                     refreshVersionsSync()
                 }
-                .sheet(isPresented: $addDeviceButtonActive, content: DeviceAddView.init)
+                .sheet(isPresented: $addDeviceButtonActive) {
+                    DeviceAddView()
+                        .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                }
                 .toolbar{ Toolbar(
                     showMenuBarExtra: $showMenuBarExtra,
                     addDeviceButtonActive: $addDeviceButtonActive
@@ -64,7 +70,6 @@ struct WLEDNativeApp: App {
         }
         #endif
     }
-    
     
     private func refreshVersionsSync() {
         Task {
