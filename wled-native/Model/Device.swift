@@ -20,12 +20,7 @@ extension Device {
     }
     
     var updateAvailable: Bool {
-        return false
-        /*
-        self.managedObjectContext?.performAndWait {
-            return !(self.latestUpdateVersionTagAvailable ?? "").isEmpty
-        } ?? false
-        */
+        return !(self.latestUpdateVersionTagAvailable ?? "").isEmpty
     }
     
     func displayColor(colorScheme: ColorScheme) -> Color {
